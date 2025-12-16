@@ -1,0 +1,113 @@
+* {
+  box-sizing: border-box;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Layout geral */
+body {
+  margin: 0;
+  background: #111;
+}
+
+/* Container principal */
+.chat-layout {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Sidebar (online) */
+.sidebar {
+  width: 220px;
+  background: #1f1f1f;
+  color: #fff;
+  padding: 15px;
+}
+
+.sidebar h4 {
+  margin-top: 0;
+}
+
+.sidebar button {
+  margin-top: 20px;
+  width: 100%;
+  background: #333;
+  color: white;
+  border: none;
+  padding: 10px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+/* Chat container */
+.chat-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #ece5dd;
+}
+
+/* Header */
+.chat-header {
+  background: #075e54;
+  color: white;
+  padding: 15px;
+  font-weight: bold;
+}
+
+/* Mensagens */
+.chat-messages {
+  flex: 1;
+  padding: 15px;
+  overflow-y: auto;
+}
+
+/* Mensagem */
+.message {
+  max-width: 70%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+}
+
+.message strong {
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+/* Mensagem do outro */
+.message-other {
+  background: #ffffff;
+  align-self: flex-start;
+}
+
+/* Minha mensagem */
+.message-own {
+  background: #dcf8c6;
+  align-self: flex-end;
+}
+
+/* Input */
+.chat-input {
+  display: flex;
+  padding: 10px;
+  background: #f0f0f0;
+}
+
+.chat-input input {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  outline: none;
+}
+
+.chat-input button {
+  background: #128c7e;
+  border: none;
+  color: white;
+  padding: 10px 15px;
+  cursor: pointer;
+}
