@@ -8,13 +8,6 @@ const API_URL =
 
 console.log("API_URL:", API_URL);
 
-
-
-const socket = io(API_URL, {
-  withCredentials: true,
-  transports: ["websocket"],
-});
-
 function Chat() {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user"));
@@ -25,12 +18,31 @@ function Chat() {
 
   const messagesEndRef = useRef(null);
 
+  // socket vai ser criado **depois** de carregar histórico
+  const socket = io(API_URL, {
+    withCredentials: true,
+    transports: ["websocket"],
+  });
+
   useEffect(() => {
     if (!user) {
       navigate("/");
       return;
     }
 
+    // ====== CARREGAR HISTÓRICO ======
+    const loadMessages = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/messages`);
+        const data = await res.json();
+        setMessages(data);
+      } catch (err) {
+        console.error("Erro ao carregar mensagens:", err);
+      }
+    };
+    loadMessages();
+
+    // ====== SOCKET ======
     socket.emit("join", user.name);
 
     socket.on("receiveMessage", (data) => {
@@ -51,14 +63,18 @@ function Chat() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (!message.trim()) return;
 
-    socket.emit("sendMessage", {
+    const msgData = {
       name: user.name,
       message,
-    });
+    };
 
+    // 🔥 envia para socket
+    socket.emit("sendMessage", msgData);
+
+    // 🔥 limpa input
     setMessage("");
   };
 
