@@ -3,7 +3,8 @@ import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
 import "../App.css";
 
-const socket = io("http://localhost:3001");
+const API_URL = import.meta.env.VITE_API_URL;
+const socket = io(API_URL);
 
 function Chat() {
   const navigate = useNavigate();
@@ -59,20 +60,16 @@ function Chat() {
 
   return (
     <div className="chat-layout">
-      {/* Sidebar */}
       <div className="sidebar">
         <h4>Online</h4>
-
         {onlineUsers.map((u, i) => (
           <p key={i}>🟢 {u}</p>
         ))}
-
         <button onClick={logout} className="logout-btn">
           Sair
         </button>
       </div>
 
-      {/* Chat */}
       <div className="chat-container">
         <div className="chat-header">
           <span>{user.name}</span>
@@ -86,8 +83,7 @@ function Chat() {
                 m.name === user.name ? "message-own" : "message-other"
               }`}
             >
-              <strong>{m.name}</strong>
-              {m.message}
+              <strong>{m.name}</strong> {m.message}
             </div>
           ))}
           <div ref={messagesEndRef} />

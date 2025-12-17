@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 function Register() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
@@ -9,10 +11,10 @@ function Register() {
   const [message, setMessage] = useState("");
 
   const register = async (e) => {
-    e.preventDefault(); // 🔥 ENTER funciona
+    e.preventDefault();
     setMessage("");
 
-    const res = await fetch("http://localhost:3001/api/users/register", {
+    const res = await fetch(`${API_URL}/api/users/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, email, password }),
@@ -22,7 +24,7 @@ function Register() {
     setMessage(data.message);
 
     if (res.ok) {
-      setTimeout(() => navigate("/"), 1000); // 🔥 volta pro login
+      setTimeout(() => navigate("/"), 1000);
     }
   };
 

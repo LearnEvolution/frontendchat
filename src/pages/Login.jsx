@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -16,7 +18,7 @@ function Login() {
     }
 
     try {
-      const res = await fetch("http://localhost:3001/api/users/login", {
+      const res = await fetch(`${API_URL}/api/users/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -31,7 +33,7 @@ function Login() {
 
       localStorage.setItem("user", JSON.stringify(data.user));
       navigate("/chat");
-    } catch (err) {
+    } catch {
       setError("Erro ao conectar no servidor");
     }
   };
