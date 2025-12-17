@@ -14,34 +14,34 @@ function Chat() {
   const [messages, setMessages] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
 
+  const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
 
-  const socketRef = useRef(null);
-
   useEffect(() => {
-
     if (!user) {
       navigate("/");
       return;
     }
 
-    // conectar socket só uma vez
-    socketRef.current = io(API_URL);
+    // conectar socket UMA vez
+    socketRef.current = io(API_URL, {
+      transports: ["websocket"],
+    });
+
+    // ao conectar, entra no chat
+    socketRef.current.emit("join", user.name);
 
     // carregar histórico
     fetch(`${API_URL}/api/messages`)
       .then((res) => res.json())
       .then((data) => setMessages(data));
 
-    // entrar na sala
-    socketRef.current.emit("join", user.name);
-
-    // receber mensagem
+    // receber mensagens em tempo real
     socketRef.current.on("receiveMessage", (data) => {
       setMessages((prev) => [...prev, data]);
     });
 
-    // receber usuários online
+    // receber lista de online
     socketRef.current.on("onlineUsers", (users) => {
       setOnlineUsers(users);
     });
@@ -66,6 +66,10 @@ function Chat() {
     localStorage.clear();
     navigate("/");
   };
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   return (
     <div className="chat-layout">
