@@ -1,45 +1,39 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const API_URL = import.meta.env.VITE_API_URL;
-
-function Register() {
+function Login() {
   const navigate = useNavigate();
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
 
-  const register = async (e) => {
+  const login = async (e) => {
     e.preventDefault();
     setMessage("");
 
-    const res = await fetch(`${API_URL}/api/users/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
-    });
+    const res = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/users/login`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      }
+    );
 
     const data = await res.json();
     setMessage(data.message);
 
     if (res.ok) {
-      setTimeout(() => navigate("/"), 1000);
+      localStorage.setItem("token", data.token);
+      setTimeout(() => navigate("/chat"), 1000);
     }
   };
 
   return (
     <div style={{ padding: 20 }}>
-      <h2>Cadastro</h2>
+      <h2>Login</h2>
 
-      <form onSubmit={register}>
-        <input
-          placeholder="Nome"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <br /><br />
-
+      <form onSubmit={login}>
         <input
           placeholder="E-mail"
           value={email}
@@ -55,7 +49,7 @@ function Register() {
         />
         <br /><br />
 
-        <button type="submit">Cadastrar</button>
+        <button type="submit">Entrar</button>
       </form>
 
       {message && <p>{message}</p>}
@@ -63,4 +57,4 @@ function Register() {
   );
 }
 
-export default Register;
+export default Login;

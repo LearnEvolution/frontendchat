@@ -8,7 +8,10 @@ const API_URL =
 
 console.log("API_URL:", API_URL);
 
+
+
 const socket = io(API_URL, {
+  withCredentials: true,
   transports: ["websocket"],
 });
 
