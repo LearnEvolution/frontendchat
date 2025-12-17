@@ -1,60 +1,84 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
-function Login() {
+const API_URL =
+  import.meta.env.VITE_API_URL || "https://backendchat-yise.onrender.com";
+
+function Register() {
   const navigate = useNavigate();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const login = async (e) => {
-    e.preventDefault();
-    setMessage("");
+  const handleRegister = async () => {
+    setError("");
+    setSuccess("");
 
-    const res = await fetch(
-      `${import.meta.env.VITE_API_URL}/api/users/login`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+    try {
+      const res = await fetch(
+        `${API_URL}/api/users/register`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, password }),
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.message || "Erro ao cadastrar");
+        return;
       }
-    );
 
-    const data = await res.json();
-    setMessage(data.message);
-
-    if (res.ok) {
-      localStorage.setItem("token", data.token);
-      setTimeout(() => navigate("/chat"), 1000);
+      setSuccess("Cadastro realizado com sucesso!");
+      setTimeout(() => navigate("/"), 1500);
+    } catch {
+      setError("Erro ao conectar no servidor");
     }
   };
 
   return (
     <div style={{ padding: 20 }}>
-      <h2>Login</h2>
+      <h2>Cadastro</h2>
 
-      <form onSubmit={login}>
-        <input
-          placeholder="E-mail"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <br /><br />
+      {error && <p style={{ color: "red" }}>{error}</p>}
+      {success && <p style={{ color: "green" }}>{success}</p>}
 
-        <input
-          type="password"
-          placeholder="Senha"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <br /><br />
+      <input
+        placeholder="Nome"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+      />
 
-        <button type="submit">Entrar</button>
-      </form>
+      <br /><br />
 
-      {message && <p>{message}</p>}
+      <input
+        placeholder="E-mail"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
+
+      <br /><br />
+
+      <input
+        type="password"
+        placeholder="Senha"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
+
+      <br /><br />
+
+      <button onClick={handleRegister}>Cadastrar</button>
+
+      <p>
+        Já tem conta? <Link to="/">Entrar</Link>
+      </p>
     </div>
   );
 }
 
-export default Login;
+export default Register;
