@@ -8,32 +8,34 @@ function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
 
-  const handleLogin = async () => {
-    setError("");
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setMessage("");
 
     try {
-      const res = await fetch(
-        `${API_URL}/api/users/login`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        }
-      );
+      const res = await fetch(`${API_URL}/api/users/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.message || "Erro no login");
+        setMessage(data.message || "Erro no login");
         return;
       }
 
+      // 🔥 salva o usuário para liberar o chat
       localStorage.setItem("user", JSON.stringify(data.user));
+
+      // 🔥 redireciona
       navigate("/chat");
-    } catch {
-      setError("Erro ao conectar no servidor");
+
+    } catch (err) {
+      setMessage("Erro ao conectar no servidor");
     }
   };
 
@@ -41,26 +43,28 @@ function Login() {
     <div style={{ padding: 20 }}>
       <h2>Login</h2>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {message && <p style={{ color: "red" }}>{message}</p>}
 
-      <input
-        placeholder="E-mail"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
+      <form onSubmit={handleLogin}>
+        <input
+          placeholder="E-mail"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
 
-      <br /><br />
+        <br /><br />
 
-      <input
-        type="password"
-        placeholder="Senha"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
+        <input
+          type="password"
+          placeholder="Senha"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
 
-      <br /><br />
+        <br /><br />
 
-      <button onClick={handleLogin}>Entrar</button>
+        <button type="submit">Entrar</button>
+      </form>
 
       <p>
         Não tem conta? <Link to="/register">Cadastrar</Link>
