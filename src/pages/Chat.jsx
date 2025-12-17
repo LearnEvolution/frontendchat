@@ -6,7 +6,10 @@ import "../App.css";
 const API_URL =
   import.meta.env.VITE_API_URL || "https://backendchat-yise.onrender.com";
 
-console.log("API_URL:", API_URL);
+const socket = io(API_URL, {
+  withCredentials: true,
+  transports: ["websocket"],
+});
 
 function Chat() {
   const navigate = useNavigate();
@@ -18,81 +21,64 @@ function Chat() {
 
   const messagesEndRef = useRef(null);
 
-  // socket vai ser criado **depois** de carregar histórico
-  const socket = io(API_URL, {
-    withCredentials: true,
-    transports: ["websocket"],
-  });
-
+  // ================= CHECK LOGIN =================
   useEffect(() => {
     if (!user) {
       navigate("/");
-      return;
     }
+  }, []);
 
-    // ====== CARREGAR HISTÓRICO ======
-    const loadMessages = async () => {
+  // ================= LOAD HISTORY =================
+  useEffect(() => {
+    const load = async () => {
       try {
         const res = await fetch(`${API_URL}/api/messages`);
         const data = await res.json();
         setMessages(data);
       } catch (err) {
-        console.error("Erro ao carregar mensagens:", err);
+        console.log(err);
       }
     };
-    loadMessages();
-
-    // ====== SOCKET ======
-    socket.emit("join", user.name);
-
-    useEffect(() => {
-  fetch(`${API_URL}/api/messages`)
-    .then((res) => res.json())
-    .then((data) => setMessages(data));
-}, []);
-
-useEffect(() => {
-  socket.emit("join", user.name);
-
-  const handleReceive = (data) => {
-    setMessages((prev) => [...prev, data]);
-  };
-
-  const handleOnline = (users) => {
-    setOnlineUsers(users);
-  };
-
-  socket.on("receiveMessage", handleReceive);
-  socket.on("onlineUsers", handleOnline);
-
-  return () => {
-    socket.off("receiveMessage", handleReceive);
-    socket.off("onlineUsers", handleOnline);
-  };
-}, []);
-
-    return () => {
-      socket.off("receiveMessage");
-      socket.off("onlineUsers");
-    };
+    load();
   }, []);
 
+  // ================= SOCKET EVENTS =================
+  useEffect(() => {
+    if (!user) return;
+
+    socket.emit("join", user.name);
+
+    const handleReceive = (data) => {
+      setMessages((prev) => [...prev, data]);
+    };
+
+    const handleOnline = (users) => {
+      setOnlineUsers(users);
+    };
+
+    socket.on("receiveMessage", handleReceive);
+    socket.on("onlineUsers", handleOnline);
+
+    return () => {
+      socket.off("receiveMessage", handleReceive);
+      socket.off("onlineUsers", handleOnline);
+    };
+  }, [user]);
+
+  // ================= SCROLL AUTO =================
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const sendMessage = async () => {
+  // ================= SEND =================
+  const sendMessage = () => {
     if (!message.trim()) return;
 
-    const msgData = {
+    socket.emit("sendMessage", {
       name: user.name,
       message,
-    };
+    });
 
-    // 🔥 envia para socket
-    socket.emit("sendMessage", msgData);
-
-    // 🔥 limpa input
     setMessage("");
   };
 
@@ -117,7 +103,7 @@ useEffect(() => {
 
       <div className="chat-container">
         <div className="chat-header">
-          <span>{user.name}</span>
+          <span>{user?.name}</span>
         </div>
 
         <div className="chat-messages">
