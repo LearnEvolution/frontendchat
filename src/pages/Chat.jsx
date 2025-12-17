@@ -6,11 +6,6 @@ import "../App.css";
 const API_URL =
   import.meta.env.VITE_API_URL || "https://backendchat-yise.onrender.com";
 
-const socket = io(API_URL, {
-  withCredentials: true,
-  transports: ["websocket"],
-});
-
 function Chat() {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user"));
@@ -21,60 +16,45 @@ function Chat() {
 
   const messagesEndRef = useRef(null);
 
-  // ================= CHECK LOGIN =================
+  const socketRef = useRef(null);
+
   useEffect(() => {
+
     if (!user) {
       navigate("/");
+      return;
     }
-  }, []);
 
-  // ================= LOAD HISTORY =================
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/messages`);
-        const data = await res.json();
-        setMessages(data);
-      } catch (err) {
-        console.log(err);
-      }
-    };
-    load();
-  }, []);
+    // conectar socket só uma vez
+    socketRef.current = io(API_URL);
 
-  // ================= SOCKET EVENTS =================
-  useEffect(() => {
-    if (!user) return;
+    // carregar histórico
+    fetch(`${API_URL}/api/messages`)
+      .then((res) => res.json())
+      .then((data) => setMessages(data));
 
-    socket.emit("join", user.name);
+    // entrar na sala
+    socketRef.current.emit("join", user.name);
 
-    const handleReceive = (data) => {
+    // receber mensagem
+    socketRef.current.on("receiveMessage", (data) => {
       setMessages((prev) => [...prev, data]);
-    };
+    });
 
-    const handleOnline = (users) => {
+    // receber usuários online
+    socketRef.current.on("onlineUsers", (users) => {
       setOnlineUsers(users);
-    };
-
-    socket.on("receiveMessage", handleReceive);
-    socket.on("onlineUsers", handleOnline);
+    });
 
     return () => {
-      socket.off("receiveMessage", handleReceive);
-      socket.off("onlineUsers", handleOnline);
+      socketRef.current.disconnect();
     };
-  }, [user]);
+  }, []);
 
-  // ================= SCROLL AUTO =================
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  // ================= SEND =================
   const sendMessage = () => {
     if (!message.trim()) return;
 
-    socket.emit("sendMessage", {
+    socketRef.current.emit("sendMessage", {
       name: user.name,
       message,
     });
@@ -91,11 +71,9 @@ function Chat() {
     <div className="chat-layout">
       <div className="sidebar">
         <h4>Online</h4>
-
         {onlineUsers.map((u, i) => (
           <p key={i}>🟢 {u}</p>
         ))}
-
         <button onClick={logout} className="logout-btn">
           Sair
         </button>
@@ -103,7 +81,7 @@ function Chat() {
 
       <div className="chat-container">
         <div className="chat-header">
-          <span>{user?.name}</span>
+          <span>{user.name}</span>
         </div>
 
         <div className="chat-messages">
