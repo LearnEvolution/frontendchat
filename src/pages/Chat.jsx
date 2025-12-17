@@ -15,43 +15,49 @@ function Chat() {
   const [onlineUsers, setOnlineUsers] = useState([]);
 
   const socketRef = useRef(null);
+  const wakeLockRef = useRef(null);
   const messagesEndRef = useRef(null);
 
-  // ======= Wake Lock =======
-  const wakeLockRef = useRef(null);
-
+  // ========== WAKELOCK ==========
   const enableWakeLock = async () => {
     try {
       if ("wakeLock" in navigator) {
         wakeLockRef.current = await navigator.wakeLock.request("screen");
+        console.log("WakeLock ativado");
       }
-    } catch {}
+    } catch (err) {
+      console.log("Falha ao ativar WakeLock:", err);
+    }
   };
 
-  const releaseWakeLock = () => {
+  const releaseWakeLock = async () => {
     try {
-      wakeLockRef?.current?.release();
+      if (wakeLockRef.current) {
+        await wakeLockRef.current.release();
+        wakeLockRef.current = null;
+        console.log("WakeLock liberado");
+      }
     } catch {}
   };
 
   useEffect(() => {
     enableWakeLock();
-    window.addEventListener("click", enableWakeLock);
 
     return () => {
       releaseWakeLock();
-      window.removeEventListener("click", enableWakeLock);
     };
   }, []);
 
-  // ======= SOCKET =======
+  // ========== SOCKET ==========
   useEffect(() => {
     if (!user) {
       navigate("/");
       return;
     }
 
-    socketRef.current = io(API_URL, { transports: ["websocket"] });
+    socketRef.current = io(API_URL, {
+      transports: ["websocket"],
+    });
 
     socketRef.current.emit("join", user.name);
 
@@ -70,7 +76,6 @@ function Chat() {
 
     return () => {
       socketRef.current.disconnect();
-      socketRef.current = null;
     };
   }, []);
 
@@ -95,7 +100,7 @@ function Chat() {
   };
 
   return (
-    <div className="chat-layout" onClick={enableWakeLock}>
+    <div className="chat-layout">
       <div className="sidebar">
         <h4>Online</h4>
 
