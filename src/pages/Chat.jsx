@@ -17,44 +17,71 @@ function Chat() {
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
 
+  // ======= Wake Lock =======
+  const wakeLockRef = useRef(null);
+
+  const enableWakeLock = async () => {
+    try {
+      if ("wakeLock" in navigator) {
+        wakeLockRef.current = await navigator.wakeLock.request("screen");
+      }
+    } catch {}
+  };
+
+  const releaseWakeLock = () => {
+    try {
+      wakeLockRef?.current?.release();
+    } catch {}
+  };
+
+  useEffect(() => {
+    enableWakeLock();
+    window.addEventListener("click", enableWakeLock);
+
+    return () => {
+      releaseWakeLock();
+      window.removeEventListener("click", enableWakeLock);
+    };
+  }, []);
+
+  // ======= SOCKET =======
   useEffect(() => {
     if (!user) {
       navigate("/");
       return;
     }
 
-    // conectar socket UMA vez
-    socketRef.current = io(API_URL, {
-      transports: ["websocket"],
-    });
+    socketRef.current = io(API_URL, { transports: ["websocket"] });
 
-    // ao conectar, entra no chat
     socketRef.current.emit("join", user.name);
 
-    // carregar histórico
-    fetch(`${API_URL}/api/messages`)
-      .then((res) => res.json())
-      .then((data) => setMessages(data));
-
-    // receber mensagens em tempo real
     socketRef.current.on("receiveMessage", (data) => {
       setMessages((prev) => [...prev, data]);
     });
 
-    // receber lista de online
     socketRef.current.on("onlineUsers", (users) => {
       setOnlineUsers(users);
     });
 
+    fetch(`${API_URL}/api/messages`)
+      .then((res) => res.json())
+      .then((data) => setMessages(data))
+      .catch(() => {});
+
     return () => {
       socketRef.current.disconnect();
+      socketRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const sendMessage = () => {
     if (!message.trim()) return;
 
-    socketRef.current.emit("sendMessage", {
+    socketRef.current?.emit("sendMessage", {
       name: user.name,
       message,
     });
@@ -67,17 +94,15 @@ function Chat() {
     navigate("/");
   };
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
   return (
-    <div className="chat-layout">
+    <div className="chat-layout" onClick={enableWakeLock}>
       <div className="sidebar">
         <h4>Online</h4>
+
         {onlineUsers.map((u, i) => (
           <p key={i}>🟢 {u}</p>
         ))}
+
         <button onClick={logout} className="logout-btn">
           Sair
         </button>
