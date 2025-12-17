@@ -45,13 +45,31 @@ function Chat() {
     // ====== SOCKET ======
     socket.emit("join", user.name);
 
-    socket.on("receiveMessage", (data) => {
-      setMessages((prev) => [...prev, data]);
-    });
+    useEffect(() => {
+  fetch(`${API_URL}/api/messages`)
+    .then((res) => res.json())
+    .then((data) => setMessages(data));
+}, []);
 
-    socket.on("onlineUsers", (users) => {
-      setOnlineUsers(users);
-    });
+useEffect(() => {
+  socket.emit("join", user.name);
+
+  const handleReceive = (data) => {
+    setMessages((prev) => [...prev, data]);
+  };
+
+  const handleOnline = (users) => {
+    setOnlineUsers(users);
+  };
+
+  socket.on("receiveMessage", handleReceive);
+  socket.on("onlineUsers", handleOnline);
+
+  return () => {
+    socket.off("receiveMessage", handleReceive);
+    socket.off("onlineUsers", handleOnline);
+  };
+}, []);
 
     return () => {
       socket.off("receiveMessage");
