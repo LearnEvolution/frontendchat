@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL =
+  import.meta.env.VITE_API_URL || "https://backendchat-yise.onrender.com";
 
 function Login() {
   const navigate = useNavigate();
@@ -11,11 +12,6 @@ function Login() {
 
   const handleLogin = async () => {
     setError("");
-
-    if (!email || !password) {
-      setError("Preencha email e senha");
-      return;
-    }
 
     try {
       const res = await fetch(`${API_URL}/api/users/login`, {

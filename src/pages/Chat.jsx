@@ -3,8 +3,14 @@ import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
 import "../App.css";
 
-const API_URL = import.meta.env.VITE_API_URL;
-const socket = io(API_URL);
+const API_URL =
+  import.meta.env.VITE_API_URL || "https://backendchat-yise.onrender.com";
+
+console.log("API_URL:", API_URL);
+
+const socket = io(API_URL, {
+  transports: ["websocket"],
+});
 
 function Chat() {
   const navigate = useNavigate();
@@ -62,9 +68,11 @@ function Chat() {
     <div className="chat-layout">
       <div className="sidebar">
         <h4>Online</h4>
+
         {onlineUsers.map((u, i) => (
           <p key={i}>🟢 {u}</p>
         ))}
+
         <button onClick={logout} className="logout-btn">
           Sair
         </button>
