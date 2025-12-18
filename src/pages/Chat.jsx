@@ -1,106 +1,109 @@
-import React, { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import io from "socket.io-client";
 
-const socket = io("https://backendchat-yise.onrender.com", {
-  transports: ["websocket"],
-});
+const socket = io("https://backend-chat.onrender.com");
+const userName = localStorage.getItem("user_name");
+const userId = localStorage.getItem("user_id");
 
 export default function Chat() {
-  const user = JSON.parse(localStorage.getItem("user"));
+
+  const [onlineUsers, setOnlineUsers] = useState([]);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
-  const [onlineUsers, setOnlineUsers] = useState([]);
 
   useEffect(() => {
-    if (!user) return;
 
-    socket.emit("join", user.name);
+    socket.emit("user_connected", {
+      name: userName,
+      id: userId
+    });
 
-    socket.on("chatMessage", (msg) => {
+    socket.on("online_users", (users) => {
+      const unique = [];
+      const ids = new Set();
+
+      for (const u of users) {
+        if (!ids.has(u.id)) {
+          ids.add(u.id);
+          unique.push(u);
+        }
+      }
+
+      setOnlineUsers(unique);
+    });
+
+    socket.on("receive_message", (msg) => {
       setMessages((prev) => [...prev, msg]);
     });
 
-    socket.on("onlineUsers", (users) => {
-      setOnlineUsers(users);
-    });
-
-    return () => {
-      socket.off("chatMessage");
-      socket.off("onlineUsers");
-    };
   }, []);
 
-  const sendMessage = () => {
-    if (!message.trim()) return;
+  function sendMessage() {
+    if (message.trim() === "") return;
 
-    socket.emit("chatMessage", {
-      usuario: user.name,
+    socket.emit("send_message", {
       text: message,
-      time: new Date().toLocaleTimeString(),
+      owner: userName
     });
 
     setMessage("");
-  };
+  }
 
   return (
     <div style={{ display: "flex", height: "100vh" }}>
-      {/* LADO ESQUERDO – USUÁRIOS ONLINE */}
-      <div
-        style={{
-          width: "200px",
-          background: "#1E1E1E",
-          color: "white",
-          padding: "10px",
-        }}
-      >
-        <h3>Online</h3>
 
-        {onlineUsers.map((u, i) => (
-          <p key={i}>
-            🟢 {u}
-          </p>
+      <div style={{ width: "40%", background: "#111", padding: 20, color: "white" }}>
+        <h2>Online</h2>
+
+        {onlineUsers.map(u => (
+          <div key={u.id} style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
+            <div style={{
+              width: 15,
+              height: 15,
+              borderRadius: "50%",
+              background: "green",
+              marginRight: 10,
+            }}></div>
+
+            <span>{u.name}</span>
+          </div>
         ))}
+
       </div>
 
-      {/* LADO DIREITO – CHAT */}
-      <div
-        style={{
-          flex: 1,
-          background: "white",
-          padding: "20px",
-        }}
-      >
-        <h2>Chat Online</h2>
-
-        <div
-          style={{
-            border: "1px solid black",
-            height: "300px",
-            overflowY: "auto",
-            marginBottom: "20px",
-            padding: "10px",
-          }}
-        >
-          {messages.map((m, i) => (
-            <div key={i}>
-              <strong>{m.usuario}</strong>: {m.text} — {m.time}
-            </div>
+      <div style={{ flex: 1, padding: 20 }}>
+        <div style={{
+          width: "100%",
+          height: "85%",
+          border: "1px solid black",
+          overflowY: "scroll",
+          marginBottom: 10
+        }}>
+          {messages.map((m, index) => (
+            <p key={index}><b>{m.owner}:</b> {m.text}</p>
           ))}
         </div>
 
         <input
-          style={{ width: "70%", padding: "10px" }}
+          placeholder="Digite uma mensagem"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder="Digite uma mensagem"
+          style={{
+            width: "80%",
+            padding: 10,
+            border: "1px solid gray",
+            marginRight: 10
+          }}
         />
+
         <button
-          style={{ width: "25%", padding: "10px" }}
           onClick={sendMessage}
+          style={{ padding: 10 }}
         >
           Enviar
         </button>
       </div>
+
     </div>
   );
 }
