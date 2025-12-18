@@ -1,77 +1,99 @@
-import { useState, useEffect } from "react";
-import io from "socket.io-client";
-import axios from "axios";
+import { useEffect, useState, useRef } from "react";
+import { io } from "socket.io-client";
+import { useNavigate } from "react-router-dom";
+import "../App.css";
 
-export default function Chat({ user }) {
+const API_URL =
+  import.meta.env.VITE_API_URL || "https://backendchat-yise.onrender.com";
 
-  const [socket, setSocket] = useState(null);
-  const [onlineUsers, setOnlineUsers] = useState([]);
+function Chat() {
+  const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem("user"));
+
+  const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
-  const [text, setText] = useState("");
+  const [onlineUsers, setOnlineUsers] = useState([]);
+
+  const socketRef = useRef(null);
+  const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      navigate("/");
+      return;
+    }
 
-    const s = io("https://backendchat-yise.onrender.com", {
+    socketRef.current = io(API_URL, {
       transports: ["websocket"],
+      forceNew: true,
+      reconnection: false,
     });
 
-    setSocket(s);
+    socketRef.current.emit("join", user.name);
 
-    s.emit("userOnline", user);
+    socketRef.current.on("receiveMessage", (data) => {
+      setMessages(prev => [...prev, data]);
+    });
 
-    s.on("onlineUsers", (users) => {
+    socketRef.current.on("onlineUsers", (users) => {
       setOnlineUsers(users);
     });
 
-    s.on("chatMessage", (msg) => {
-      setMessages((prev) => [...prev, msg]);
-    });
-
     return () => {
-      s.disconnect();
+      socketRef.current.disconnect();
     };
+  }, []);
 
-  }, [user]);
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
+  const sendMessage = () => {
+    if (!message.trim()) return;
 
-  const sendMsg = () => {
-    if (!text) return;
-    socket.emit("chatMessage", {
-      user,
-      text,
+    socketRef.current.emit("sendMessage", {
+      name: user.name,
+      message,
     });
-    setText("");
+
+    setMessage("");
   };
 
   return (
-    <div style={{ padding: 20, color: "white" }}>
-      <h2>Chat</h2>
-
-      <h4>Usuários online:</h4>
-      {onlineUsers.map((u, i) => (
-        <p key={i}>{u.email}</p>
-      ))}
-
-      <hr/>
-
-      <div>
-        {messages.map((m, i) => (
-          <p key={i}>
-            <b>{m.user.email}:</b> {m.text}
-          </p>
+    <div className="chat-layout">
+      <div className="sidebar">
+        <h4>Online</h4>
+        {onlineUsers.map((u, i) => (
+          <p key={i}>🟢 {u}</p>
         ))}
       </div>
 
-      <hr/>
+      <div className="chat-container">
+        <div className="chat-header">
+          <span>{user.name}</span>
+        </div>
 
-      <input
-        placeholder="Digite sua mensagem..."
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-      />
+        <div className="chat-messages">
+          {messages.map((m, i) => (
+            <div key={i} className="message">
+              <strong>{m.name}: </strong>{m.message}
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
 
-      <button onClick={sendMsg}>Enviar</button>
+        <div className="chat-input">
+          <input
+            placeholder="Digite uma mensagem"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+          />
+          <button onClick={sendMessage}>Enviar</button>
+        </div>
+      </div>
     </div>
   );
 }
+
+export default Chat;

@@ -1,57 +1,50 @@
-import { useState } from "react";
-import axios from "axios";
-import "../styles/Login.css";
+import React, { useState } from "react";
+import API_URL from "../config";
 
-export default function Login({ setUser }) {
-
+export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [msg, setMsg] = useState("");
+  const [error, setError] = useState("");
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-
+  const handleLogin = async () => {
     try {
-      const res = await axios.post(
-        "https://backendchat-yise.onrender.com/user/login",
-        { email, password }
-      );
+      const response = await fetch(`${API_URL}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
 
-      setUser(res.data.user);
-      setMsg("Login realizado com sucesso!");
-      console.log(res.data);
+      if (!response.ok) {
+        throw new Error("Erro ao fazer login");
+      }
 
-    } catch (err) {
-      setMsg("Erro ao fazer login.");
-      console.error(err);
+      const data = await response.json();
+      console.log("Login OK:", data);
+      setError("");
+    } catch {
+      setError("Erro ao conectar no servidor");
     }
   };
 
   return (
-    <div className="login-container">
-      <h2>Login</h2>
+    <div>
+      <h1>Login</h1>
+      {error && <p style={{ color: "red" }}>{error}</p>}
 
-      <form onSubmit={handleLogin}>
-        
+      <input 
+        placeholder="Email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
 
-        <input
-          type="email"
-          placeholder="E-mail"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+      <input 
+        type="password"
+        placeholder="Senha"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
 
-        <input
-          type="password"
-          placeholder="Senha"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-
-        <button type="submit">Entrar</button>
-      </form>
-
-      <p>{msg}</p>
+      <button onClick={handleLogin}>Entrar</button>
     </div>
   );
 }
