@@ -1,58 +1,45 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import axios from "axios";
+import "../styles/Login.css";
 
-const API_URL =
-  import.meta.env.VITE_API_URL || "https://backendchat-yise.onrender.com";
+export default function Login({ setUser }) {
 
-function Login() {
-  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("");
+  const [msg, setMsg] = useState("");
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setMessage("");
 
     try {
-      const res = await fetch(`${API_URL}/api/users/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      const res = await axios.post(
+        "https://backendchat-yise.onrender.com/user/login",
+        { email, password }
+      );
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setMessage(data.message || "Erro no login");
-        return;
-      }
-
-      // 🔥 salva o usuário para liberar o chat
-      localStorage.setItem("user", JSON.stringify(data.user));
-
-      // 🔥 redireciona
-      navigate("/chat");
+      setUser(res.data.user);
+      setMsg("Login realizado com sucesso!");
+      console.log(res.data);
 
     } catch (err) {
-      setMessage("Erro ao conectar no servidor");
+      setMsg("Erro ao fazer login.");
+      console.error(err);
     }
   };
 
   return (
-    <div style={{ padding: 20 }}>
+    <div className="login-container">
       <h2>Login</h2>
 
-      {message && <p style={{ color: "red" }}>{message}</p>}
-
       <form onSubmit={handleLogin}>
+        
+
         <input
+          type="email"
           placeholder="E-mail"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
-
-        <br /><br />
 
         <input
           type="password"
@@ -61,16 +48,10 @@ function Login() {
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        <br /><br />
-
         <button type="submit">Entrar</button>
       </form>
 
-      <p>
-        Não tem conta? <Link to="/register">Cadastrar</Link>
-      </p>
+      <p>{msg}</p>
     </div>
   );
 }
-
-export default Login;

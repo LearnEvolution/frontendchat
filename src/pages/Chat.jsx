@@ -1,109 +1,77 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import io from "socket.io-client";
+import axios from "axios";
 
-const socket = io("https://backend-chat.onrender.com");
-const userName = localStorage.getItem("user_name");
-const userId = localStorage.getItem("user_id");
+export default function Chat({ user }) {
 
-export default function Chat() {
-
+  const [socket, setSocket] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState([]);
-  const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
+  const [text, setText] = useState("");
 
   useEffect(() => {
+    if (!user) return;
 
-    socket.emit("user_connected", {
-      name: userName,
-      id: userId
+    const s = io("https://backendchat-yise.onrender.com", {
+      transports: ["websocket"],
     });
 
-    socket.on("online_users", (users) => {
-      const unique = [];
-      const ids = new Set();
+    setSocket(s);
 
-      for (const u of users) {
-        if (!ids.has(u.id)) {
-          ids.add(u.id);
-          unique.push(u);
-        }
-      }
+    s.emit("userOnline", user);
 
-      setOnlineUsers(unique);
+    s.on("onlineUsers", (users) => {
+      setOnlineUsers(users);
     });
 
-    socket.on("receive_message", (msg) => {
+    s.on("chatMessage", (msg) => {
       setMessages((prev) => [...prev, msg]);
     });
 
-  }, []);
+    return () => {
+      s.disconnect();
+    };
 
-  function sendMessage() {
-    if (message.trim() === "") return;
+  }, [user]);
 
-    socket.emit("send_message", {
-      text: message,
-      owner: userName
+
+  const sendMsg = () => {
+    if (!text) return;
+    socket.emit("chatMessage", {
+      user,
+      text,
     });
-
-    setMessage("");
-  }
+    setText("");
+  };
 
   return (
-    <div style={{ display: "flex", height: "100vh" }}>
+    <div style={{ padding: 20, color: "white" }}>
+      <h2>Chat</h2>
 
-      <div style={{ width: "40%", background: "#111", padding: 20, color: "white" }}>
-        <h2>Online</h2>
+      <h4>Usuários online:</h4>
+      {onlineUsers.map((u, i) => (
+        <p key={i}>{u.email}</p>
+      ))}
 
-        {onlineUsers.map(u => (
-          <div key={u.id} style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
-            <div style={{
-              width: 15,
-              height: 15,
-              borderRadius: "50%",
-              background: "green",
-              marginRight: 10,
-            }}></div>
+      <hr/>
 
-            <span>{u.name}</span>
-          </div>
+      <div>
+        {messages.map((m, i) => (
+          <p key={i}>
+            <b>{m.user.email}:</b> {m.text}
+          </p>
         ))}
-
       </div>
 
-      <div style={{ flex: 1, padding: 20 }}>
-        <div style={{
-          width: "100%",
-          height: "85%",
-          border: "1px solid black",
-          overflowY: "scroll",
-          marginBottom: 10
-        }}>
-          {messages.map((m, index) => (
-            <p key={index}><b>{m.owner}:</b> {m.text}</p>
-          ))}
-        </div>
+      <hr/>
 
-        <input
-          placeholder="Digite uma mensagem"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          style={{
-            width: "80%",
-            padding: 10,
-            border: "1px solid gray",
-            marginRight: 10
-          }}
-        />
+      <input
+        placeholder="Digite sua mensagem..."
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+      />
 
-        <button
-          onClick={sendMessage}
-          style={{ padding: 10 }}
-        >
-          Enviar
-        </button>
-      </div>
-
+      <button onClick={sendMsg}>Enviar</button>
     </div>
   );
 }
