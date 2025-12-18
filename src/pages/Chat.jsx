@@ -1,149 +1,68 @@
-import { useEffect, useState, useRef } from "react";
-import { io } from "socket.io-client";
-import { useNavigate } from "react-router-dom";
-import "../App.css";
+import React, { useState, useEffect } from "react";
+import io from "socket.io-client";
 
-const API_URL =
-  import.meta.env.VITE_API_URL || "https://backendchat-yise.onrender.com";
+const socket = io("https://backendchat-yise.onrender.com", {
+  transports: ["websocket"],
+});
 
-function Chat() {
-  const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user"));
-
+export default function Chat() {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
-  const [onlineUsers, setOnlineUsers] = useState([]);
-
-  const socketRef = useRef(null);
-  const wakeLockRef = useRef(null);
-  const messagesEndRef = useRef(null);
-
-  // ========== WAKELOCK ==========
-  const enableWakeLock = async () => {
-    try {
-      if ("wakeLock" in navigator) {
-        wakeLockRef.current = await navigator.wakeLock.request("screen");
-        console.log("WakeLock ativado");
-      }
-    } catch (err) {
-      console.log("Falha ao ativar WakeLock:", err);
-    }
-  };
-
-  const releaseWakeLock = async () => {
-    try {
-      if (wakeLockRef.current) {
-        await wakeLockRef.current.release();
-        wakeLockRef.current = null;
-        console.log("WakeLock liberado");
-      }
-    } catch {}
-  };
+  const usuario = localStorage.getItem("user");
 
   useEffect(() => {
-    enableWakeLock();
+    socket.on("chatMessage", (msg) => {
+      setMessages((prev) => [...prev, msg]);
+    });
 
     return () => {
-      releaseWakeLock();
+      socket.off("chatMessage");
     };
   }, []);
-
-  // ========== SOCKET ==========
-  useEffect(() => {
-    if (!user) {
-      navigate("/");
-      return;
-    }
-
-    socketRef.current = io(API_URL, {
-      transports: ["websocket"],
-    });
-
-    socketRef.current.emit("join", user.name);
-
-    socketRef.current.on("receiveMessage", (data) => {
-      setMessages((prev) => [...prev, data]);
-    });
-
-    socketRef.current.on("onlineUsers", (users) => {
-      setOnlineUsers(users);
-    });
-
-    fetch(`${API_URL}/api/messages`)
-      .then((res) => res.json())
-      .then((data) => setMessages(data))
-      .catch(() => {});
-
-    return () => {
-      socketRef.current.disconnect();
-    };
-  }, []);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
 
   const sendMessage = () => {
     if (!message.trim()) return;
-
-    socketRef.current?.emit("sendMessage", {
-      name: user.name,
-      message,
+    socket.emit("chatMessage", {
+      usuario,
+      text: message,
+      time: new Date().toLocaleTimeString(),
     });
-
     setMessage("");
   };
 
-  const logout = () => {
-    localStorage.clear();
-    navigate("/");
-  };
-
   return (
-    <div className="chat-layout">
-      <div className="sidebar">
-        <h4>Online</h4>
+    <div style={{ padding: "20px", background: "white" }}>
+      <h2>Chat Online</h2>
 
-        {onlineUsers.map((u, i) => (
-          <p key={i}>🟢 {u}</p>
+      <div
+        style={{
+          border: "1px solid black",
+          height: "300px",
+          overflowY: "auto",
+          marginBottom: "20px",
+          padding: "10px",
+          background: "white",
+        }}
+      >
+        {messages.map((m, i) => (
+          <div key={i}>
+            <strong>{m.usuario}</strong>: {m.text} — {m.time}
+          </div>
         ))}
-
-        <button onClick={logout} className="logout-btn">
-          Sair
-        </button>
       </div>
 
-      <div className="chat-container">
-        <div className="chat-header">
-          <span>{user.name}</span>
-        </div>
-
-        <div className="chat-messages">
-          {messages.map((m, i) => (
-            <div
-              key={i}
-              className={`message ${
-                m.name === user.name ? "message-own" : "message-other"
-              }`}
-            >
-              <strong>{m.name}</strong> {m.message}
-            </div>
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
-
-        <div className="chat-input">
-          <input
-            placeholder="Digite uma mensagem"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-          />
-          <button onClick={sendMessage}>Enviar</button>
-        </div>
-      </div>
+      <input
+        style={{ width: "70%", padding: "10px" }}
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        placeholder="Digite uma mensagem"
+      />
+      <button
+        style={{ width: "25%", padding: "10px" }}
+        onClick={sendMessage}
+      >
+        Enviar
+      </button>
     </div>
   );
 }
-
-export default Chat;
